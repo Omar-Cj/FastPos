@@ -1,0 +1,49 @@
+# For machines with Docker. On this WSL box we run MySQL natively and Celery in eager mode instead.
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: fastpos
+      MYSQL_USER: fastpos
+      MYSQL_PASSWORD: fastpos
+      MYSQL_ROOT_PASSWORD: root
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    ports: ["3306:3306"]
+    volumes: ["mysql_data:/var/lib/mysql"]
+    healthcheck: {test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"], interval: 5s, retries: 10}
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment: &env
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DATABASE_URL: mysql://fastpos:fastpos@db:3306/fastpos
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_TASK_ALWAYS_EAGER: "false"
+      PAYMENT_PROVIDER_BACKEND: mock
+    volumes: [".:/app"]
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+
+  worker:
+    build: .
+    command: celery -A config worker -l info --concurrency 4
+    environment: *env
+    volumes: [".:/app"]
+    depends_on: [web, redis]
+
+  beat:
+    build: .
+    command: celery -A config beat -l info
+    environment: *env
+    volumes: [".:/app"]
+    depends_on: [web, redis]
+
+volumes:
+  mysql_data:

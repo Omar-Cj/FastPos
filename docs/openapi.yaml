@@ -1,0 +1,3766 @@
+openapi: 3.0.3
+info:
+  title: FastPOS API
+  version: 1.0.0
+  description: 'Self-checkout kiosk backend. Kiosk endpoints use `Authorization: Kiosk
+    <token>`; admin endpoints use `Authorization: Bearer <jwt>`.'
+paths:
+  /api/v1/admin/categories/:
+    get:
+      operationId: admin_categories_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoryList'
+          description: ''
+    post:
+      operationId: admin_categories_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/admin/categories/{id}/:
+    get:
+      operationId: admin_categories_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this category.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    put:
+      operationId: admin_categories_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this category.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    patch:
+      operationId: admin_categories_partial_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this category.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    delete:
+      operationId: admin_categories_destroy
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this category.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/kiosks/:
+    get:
+      operationId: admin_kiosks_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKioskList'
+          description: ''
+    post:
+      operationId: admin_kiosks_create
+      description: The response also contains `token` (plain device token, shown only
+        once).
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kiosk'
+          description: ''
+  /api/v1/admin/kiosks/{id}/:
+    get:
+      operationId: admin_kiosks_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kiosk'
+          description: ''
+    put:
+      operationId: admin_kiosks_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KioskRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kiosk'
+          description: ''
+    patch:
+      operationId: admin_kiosks_partial_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKioskRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedKioskRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedKioskRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kiosk'
+          description: ''
+    delete:
+      operationId: admin_kiosks_destroy
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/kiosks/{id}/rotate-key/:
+    post:
+      operationId: admin_kiosks_rotate_key_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: Issue a new device token; the old one stops working immediately
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskToken'
+          description: ''
+  /api/v1/admin/me/:
+    get:
+      operationId: admin_me_retrieve
+      description: Admin panel endpoints, JWT + ADMIN role.
+      summary: The logged-in admin
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/admin/orders/:
+    get:
+      operationId: admin_orders_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: kiosk
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - AWAITING_PAYMENT
+          - CANCELLED
+          - OPEN
+          - PAID
+        description: |-
+          * `OPEN` - Open
+          * `AWAITING_PAYMENT` - Awaiting payment
+          * `PAID` - Paid
+          * `CANCELLED` - Cancelled
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminOrderListList'
+          description: ''
+  /api/v1/admin/orders/{id}/:
+    get:
+      operationId: admin_orders_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderDetail'
+          description: ''
+  /api/v1/admin/payments/:
+    get:
+      operationId: admin_payments_list
+      description: Every payment attempt of the admin's store, newest first.
+      parameters:
+      - in: query
+        name: initiated_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: initiated_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: method
+        schema:
+          type: string
+          enum:
+          - EDAHAB
+          - WAAFI
+        description: |-
+          * `WAAFI` - Waafi (Hormuud)
+          * `EDAHAB` - E-Dahab (Somtel)
+      - in: query
+        name: order
+        schema:
+          type: string
+          format: uuid
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - FAILED
+          - PENDING
+          - SUCCESS
+        description: |-
+          * `PENDING` - Pending
+          * `SUCCESS` - Success
+          * `FAILED` - Failed
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminPaymentList'
+          description: ''
+  /api/v1/admin/payments/{id}/:
+    get:
+      operationId: admin_payments_retrieve
+      description: Every payment attempt of the admin's store, newest first.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this payment.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPayment'
+          description: ''
+  /api/v1/admin/products/:
+    get:
+      operationId: admin_products_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: requires_weight_check
+        schema:
+          type: boolean
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductList'
+          description: ''
+    post:
+      operationId: admin_products_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+  /api/v1/admin/products/{id}/:
+    get:
+      operationId: admin_products_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    put:
+      operationId: admin_products_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    patch:
+      operationId: admin_products_partial_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProductRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+          description: ''
+    delete:
+      operationId: admin_products_destroy
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this product.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/products/export/:
+    get:
+      operationId: admin_products_export_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: Download products as CSV (same layout as the import)
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/admin/products/import/:
+    post:
+      operationId: admin_products_import_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: Upsert products by barcode from a CSV file
+      tags:
+      - admin
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImportRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+          description: ''
+  /api/v1/admin/reports/sales-summary/:
+    get:
+      operationId: admin_reports_sales_summary_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: 'Paid orders: totals, per day, per payment method, per kiosk'
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive start date.
+      - in: query
+        name: store
+        schema:
+          type: integer
+        description: Required for superusers.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive end date.
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/reports/weight-incidents/:
+    get:
+      operationId: admin_reports_weight_incidents_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: 'Weigh attempts: pass/fail/override counts, worst products and kiosks'
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive start date.
+      - in: query
+        name: store
+        schema:
+          type: integer
+        description: Required for superusers.
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive end date.
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/admin/staff/:
+    get:
+      operationId: admin_staff_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - ADMIN
+          - STAFF
+        description: |-
+          * `ADMIN` - Store admin
+          * `STAFF` - Floor staff
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStaffList'
+          description: ''
+    post:
+      operationId: admin_staff_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+          description: ''
+  /api/v1/admin/staff/{id}/:
+    get:
+      operationId: admin_staff_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+          description: ''
+    put:
+      operationId: admin_staff_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StaffRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+          description: ''
+    patch:
+      operationId: admin_staff_partial_update
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
+          description: ''
+    delete:
+      operationId: admin_staff_destroy
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/staff/{id}/set-pin/:
+    post:
+      operationId: admin_staff_set_pin_create
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      summary: Set a staff member's kiosk PIN
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPinRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SetPinRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SetPinRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/stores/:
+    get:
+      operationId: admin_stores_list
+      description: Platform operators manage stores.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedStoreList'
+          description: ''
+    post:
+      operationId: admin_stores_create
+      description: Platform operators manage stores.
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+          description: ''
+  /api/v1/admin/stores/{id}/:
+    get:
+      operationId: admin_stores_retrieve
+      description: Platform operators manage stores.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this store.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+          description: ''
+    put:
+      operationId: admin_stores_update
+      description: Platform operators manage stores.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this store.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StoreRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+          description: ''
+    patch:
+      operationId: admin_stores_partial_update
+      description: Platform operators manage stores.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this store.
+        required: true
+      tags:
+      - admin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStoreRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStoreRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStoreRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Store'
+          description: ''
+    delete:
+      operationId: admin_stores_destroy
+      description: Platform operators manage stores.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this store.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/admin/weight-verifications/:
+    get:
+      operationId: admin_weight_verifications_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: kiosk
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: outcome
+        schema:
+          type: string
+          enum:
+          - ADDED
+          - OVERRIDDEN
+          - REJECTED
+        description: |-
+          * `ADDED` - Added to order
+          * `REJECTED` - Rejected
+          * `OVERRIDDEN` - Overridden by staff
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: product
+        schema:
+          type: integer
+      - in: query
+        name: result
+        schema:
+          type: string
+          enum:
+          - FAIL
+          - PASS
+        description: |-
+          * `PASS` - Pass
+          * `FAIL` - Fail
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWeightVerificationList'
+          description: ''
+  /api/v1/admin/weight-verifications/{id}/:
+    get:
+      operationId: admin_weight_verifications_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight verification.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightVerification'
+          description: ''
+  /api/v1/auth/token/:
+    post:
+      operationId: auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/kiosk/heartbeat/:
+    post:
+      operationId: kiosk_heartbeat_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: 'Kiosk heartbeat: marks the device online and returns store settings'
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/kiosk/orders/:
+    post:
+      operationId: kiosk_orders_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Start a new basket
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/:
+    get:
+      operationId: kiosk_orders_retrieve
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Get a basket with items and totals
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/cancel/:
+    post:
+      operationId: kiosk_orders_cancel_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Cancel a basket (staff required when it has items)
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CancelOrderRequest'
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/events/:
+    post:
+      operationId: kiosk_orders_events_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Record a post-payment hardware event (receipt printed, EAS tags deactivated).
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderEventRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderEventRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderEventRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderEventResponse'
+          description: ''
+        '409':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+  /api/v1/kiosk/orders/{order_id}/items/:
+    post:
+      operationId: kiosk_orders_items_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Scan + weigh one unit (422 WEIGHT_MISMATCH on failed weigh)
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Client UUID; a replay returns the existing item with 200.
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResult'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResult'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/items/{item_id}/:
+    delete:
+      operationId: kiosk_orders_items_destroy
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Staff remove one item
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TotalsResult'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/items/override/:
+    post:
+      operationId: kiosk_orders_items_override_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Staff approve a rejected weigh
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OverrideItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OverrideItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OverrideItemRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemResult'
+          description: ''
+  /api/v1/kiosk/orders/{order_id}/payments/:
+    post:
+      operationId: kiosk_orders_payments_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Start a mobile-money payment (USSD prompt); poll the payment for the
+        result.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: UUID; a retry with the same key returns the same payment.
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InitiatePaymentRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+        '400':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+        '404':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+        '409':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+  /api/v1/kiosk/orders/{order_id}/payments/{payment_id}/:
+    get:
+      operationId: kiosk_orders_payments_retrieve
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Poll a payment attempt.
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: payment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+          description: ''
+        '404':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+  /api/v1/kiosk/orders/{order_id}/receipt/:
+    get:
+      operationId: kiosk_orders_receipt_retrieve
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Receipt of a paid order.
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+          description: ''
+        '404':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+        '409':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+  /api/v1/kiosk/products/lookup/:
+    get:
+      operationId: kiosk_products_lookup_retrieve
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Look up an active product of this kiosk's store by barcode
+      parameters:
+      - in: query
+        name: barcode
+        schema:
+          type: string
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskProduct'
+          description: ''
+components:
+  schemas:
+    AddItemRequest:
+      type: object
+      properties:
+        barcode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        measured_weight_g:
+          type: integer
+          minimum: 0
+          nullable: true
+      required:
+      - barcode
+    AdminOrderDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kiosk:
+          type: integer
+          readOnly: true
+        kiosk_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        receipt_number:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: Assigned on PAID.
+        item_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        cancelled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancel_reason:
+          type: string
+          readOnly: true
+        receipt_printed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        eas_deactivated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrderItem'
+          readOnly: true
+        verifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeightVerification'
+          readOnly: true
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderPayment'
+          readOnly: true
+      required:
+      - cancel_reason
+      - cancelled_at
+      - created_at
+      - eas_deactivated_at
+      - id
+      - item_count
+      - items
+      - kiosk
+      - kiosk_name
+      - paid_at
+      - payments
+      - receipt_number
+      - receipt_printed_at
+      - status
+      - subtotal
+      - tax
+      - total
+      - updated_at
+      - verifications
+    AdminOrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+          readOnly: true
+        barcode:
+          type: string
+          readOnly: true
+        product_name:
+          type: string
+          readOnly: true
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        expected_weight_g:
+          type: integer
+          readOnly: true
+        tolerance_g:
+          type: integer
+          readOnly: true
+        measured_weight_g:
+          type: integer
+          readOnly: true
+          nullable: true
+        weight_status:
+          allOf:
+          - $ref: '#/components/schemas/WeightStatusEnum'
+          readOnly: true
+        verification:
+          type: integer
+          readOnly: true
+          nullable: true
+        overridden_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - barcode
+      - created_at
+      - expected_weight_g
+      - id
+      - measured_weight_g
+      - overridden_by
+      - product
+      - product_name
+      - tolerance_g
+      - unit_price
+      - verification
+      - weight_status
+    AdminOrderList:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kiosk:
+          type: integer
+          readOnly: true
+        kiosk_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        receipt_number:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: Assigned on PAID.
+        item_count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - created_at
+      - id
+      - item_count
+      - kiosk
+      - kiosk_name
+      - paid_at
+      - receipt_number
+      - status
+      - subtotal
+      - tax
+      - total
+    AdminPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+        order_receipt_number:
+          type: integer
+          readOnly: true
+          nullable: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        customer_phone:
+          type: string
+          readOnly: true
+          description: Wallet number that receives the USSD prompt.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+          description: Provider transaction / invoice id.
+        initiated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - amount
+      - completed_at
+      - currency
+      - customer_phone
+      - failure_reason
+      - id
+      - initiated_at
+      - method
+      - order
+      - order_receipt_number
+      - provider_reference
+      - status
+    CancelOrderRequest:
+      type: object
+      properties:
+        staff_code:
+          type: string
+          maxLength: 32
+        pin:
+          type: string
+          maxLength: 32
+        reason:
+          type: string
+          default: ''
+          maxLength: 255
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    CategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+      - name
+    ImportRequestRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 'CSV: barcode,name,price,expected_weight_g,weight_tolerance_g,category'
+      required:
+      - file
+    ImportResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportResultError'
+      required:
+      - created
+      - errors
+      - updated
+    ImportResultError:
+      type: object
+      properties:
+        row:
+          type: integer
+        barcode:
+          type: string
+        message:
+          type: string
+      required:
+      - barcode
+      - message
+      - row
+    InitiatePaymentRequest:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        customer_phone:
+          type: string
+          minLength: 1
+          maxLength: 20
+      required:
+      - customer_phone
+      - method
+    ItemResult:
+      type: object
+      description: Response of add / override.
+      properties:
+        item:
+          $ref: '#/components/schemas/OrderItem'
+        order:
+          $ref: '#/components/schemas/OrderTotals'
+      required:
+      - item
+      - order
+    Kiosk:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        store:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        serial_number:
+          type: string
+          nullable: true
+          maxLength: 120
+        is_active:
+          type: boolean
+        key_prefix:
+          type: string
+          readOnly: true
+        last_seen_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_online:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - is_online
+      - key_prefix
+      - last_seen_at
+      - name
+      - store
+    KioskProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        barcode:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        expected_weight_g:
+          type: integer
+          readOnly: true
+          description: Weight of one unit incl. packaging, in grams.
+        tolerance_g:
+          type: integer
+          readOnly: true
+        requires_weight_check:
+          type: boolean
+          readOnly: true
+          description: False for items too light to weigh.
+        has_eas_tag:
+          type: boolean
+          readOnly: true
+        category:
+          type: string
+          nullable: true
+          readOnly: true
+      required:
+      - barcode
+      - category
+      - expected_weight_g
+      - has_eas_tag
+      - id
+      - name
+      - price
+      - requires_weight_check
+      - tolerance_g
+    KioskRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        serial_number:
+          type: string
+          nullable: true
+          maxLength: 120
+        is_active:
+          type: boolean
+      required:
+      - name
+    KioskToken:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Plain device token. Shown once; only its hash is stored.
+      required:
+      - token
+    Me:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRoleEnum'
+          readOnly: true
+        store:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        is_superuser:
+          type: boolean
+          readOnly: true
+          title: Superuser status
+          description: Designates that this user has all permissions without explicitly
+            assigning them.
+      required:
+      - email
+      - id
+      - is_superuser
+      - role
+      - store
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        kiosk:
+          type: integer
+          readOnly: true
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        item_count:
+          type: integer
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+        receipt_number:
+          type: integer
+          readOnly: true
+          nullable: true
+          description: Assigned on PAID.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancelled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancel_reason:
+          type: string
+          readOnly: true
+      required:
+      - cancel_reason
+      - cancelled_at
+      - created_at
+      - id
+      - item_count
+      - items
+      - kiosk
+      - paid_at
+      - receipt_number
+      - status
+      - subtotal
+      - tax
+      - total
+      - updated_at
+    OrderEventRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+      required:
+      - type
+    OrderEventResponse:
+      type: object
+      properties:
+        order_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        recorded_at:
+          type: string
+          format: date-time
+      required:
+      - order_id
+      - recorded_at
+      - type
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product_id:
+          type: integer
+          readOnly: true
+        barcode:
+          type: string
+          readOnly: true
+        product_name:
+          type: string
+          readOnly: true
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        expected_weight_g:
+          type: integer
+          readOnly: true
+        tolerance_g:
+          type: integer
+          readOnly: true
+        measured_weight_g:
+          type: integer
+          readOnly: true
+          nullable: true
+        weight_status:
+          allOf:
+          - $ref: '#/components/schemas/WeightStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - barcode
+      - created_at
+      - expected_weight_g
+      - id
+      - measured_weight_g
+      - product_id
+      - product_name
+      - tolerance_g
+      - unit_price
+      - weight_status
+    OrderPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+          description: Provider transaction / invoice id.
+        customer_phone:
+          type: string
+          readOnly: true
+          description: Wallet number that receives the USSD prompt.
+        initiated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - amount
+      - completed_at
+      - currency
+      - customer_phone
+      - id
+      - initiated_at
+      - method
+      - provider_reference
+      - status
+    OrderStatusEnum:
+      enum:
+      - OPEN
+      - AWAITING_PAYMENT
+      - PAID
+      - CANCELLED
+      type: string
+      description: |-
+        * `OPEN` - Open
+        * `AWAITING_PAYMENT` - Awaiting payment
+        * `PAID` - Paid
+        * `CANCELLED` - Cancelled
+    OrderTotals:
+      type: object
+      properties:
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        item_count:
+          type: integer
+      required:
+      - item_count
+      - subtotal
+      - tax
+      - total
+    OverrideItemRequest:
+      type: object
+      properties:
+        staff_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        pin:
+          type: string
+          minLength: 1
+          maxLength: 32
+        verification_id:
+          type: integer
+        reason:
+          type: string
+          default: ''
+          maxLength: 255
+      required:
+      - pin
+      - staff_code
+      - verification_id
+    PaginatedAdminOrderListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrderList'
+    PaginatedAdminPaymentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminPayment'
+    PaginatedCategoryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    PaginatedKioskList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Kiosk'
+    PaginatedProductList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+    PaginatedStaffList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Staff'
+    PaginatedStoreList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Store'
+    PaginatedWeightVerificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeightVerification'
+    PatchedCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+    PatchedKioskRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        serial_number:
+          type: string
+          nullable: true
+          maxLength: 120
+        is_active:
+          type: boolean
+    PatchedProductRequest:
+      type: object
+      properties:
+        barcode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: integer
+          nullable: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        expected_weight_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Weight of one unit incl. packaging, in grams.
+        weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Null = store default.
+        requires_weight_check:
+          type: boolean
+          description: False for items too light to weigh.
+        has_eas_tag:
+          type: boolean
+        is_active:
+          type: boolean
+    PatchedStaffRequest:
+      type: object
+      description: Users of the admin's store. `store_id` comes from the view via
+        context.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRoleEnum'
+          default: STAFF
+        staff_code:
+          type: string
+          nullable: true
+          description: Typed on the kiosk before the PIN.
+          maxLength: 20
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        pin:
+          type: string
+          writeOnly: true
+    PatchedStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+          description: 0.05 = 5%
+        default_weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Used when a product has no tolerance of its own.
+        is_active:
+          type: boolean
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        customer_phone:
+          type: string
+          readOnly: true
+          description: Wallet number that receives the USSD prompt.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+          description: Provider transaction / invoice id.
+        initiated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - amount
+      - completed_at
+      - currency
+      - customer_phone
+      - failure_reason
+      - id
+      - initiated_at
+      - method
+      - order
+      - provider_reference
+      - status
+    PaymentMethodEnum:
+      enum:
+      - WAAFI
+      - EDAHAB
+      type: string
+      description: |-
+        * `WAAFI` - Waafi (Hormuud)
+        * `EDAHAB` - E-Dahab (Somtel)
+    PaymentStatus:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+        method:
+          allOf:
+          - $ref: '#/components/schemas/PaymentMethodEnum'
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          readOnly: true
+        customer_phone:
+          type: string
+          readOnly: true
+          description: Wallet number that receives the USSD prompt.
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentStatusEnum'
+          readOnly: true
+        failure_reason:
+          type: string
+          readOnly: true
+        provider_reference:
+          type: string
+          readOnly: true
+          description: Provider transaction / invoice id.
+        initiated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        order_status:
+          type: string
+          readOnly: true
+      required:
+      - amount
+      - completed_at
+      - currency
+      - customer_phone
+      - failure_reason
+      - id
+      - initiated_at
+      - method
+      - order
+      - order_status
+      - provider_reference
+      - status
+    PaymentStatusEnum:
+      enum:
+      - PENDING
+      - SUCCESS
+      - FAILED
+      type: string
+      description: |-
+        * `PENDING` - Pending
+        * `SUCCESS` - Success
+        * `FAILED` - Failed
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        barcode:
+          type: string
+          maxLength: 64
+        name:
+          type: string
+          maxLength: 200
+        category:
+          type: integer
+          nullable: true
+        category_name:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        expected_weight_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Weight of one unit incl. packaging, in grams.
+        weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Null = store default.
+        effective_tolerance_g:
+          type: integer
+          readOnly: true
+        requires_weight_check:
+          type: boolean
+          description: False for items too light to weigh.
+        has_eas_tag:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - barcode
+      - category_name
+      - created_at
+      - effective_tolerance_g
+      - expected_weight_g
+      - id
+      - name
+      - price
+      - updated_at
+    ProductRequest:
+      type: object
+      properties:
+        barcode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        category:
+          type: integer
+          nullable: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        expected_weight_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Weight of one unit incl. packaging, in grams.
+        weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+          description: Null = store default.
+        requires_weight_check:
+          type: boolean
+          description: False for items too light to weigh.
+        has_eas_tag:
+          type: boolean
+        is_active:
+          type: boolean
+      required:
+      - barcode
+      - expected_weight_g
+      - name
+      - price
+    Receipt:
+      type: object
+      description: Documentation-only shape of `build_receipt()`.
+      properties:
+        receipt_number:
+          type: integer
+        order_id:
+          type: string
+          format: uuid
+        store:
+          $ref: '#/components/schemas/ReceiptStore'
+        kiosk:
+          type: string
+        paid_at:
+          type: string
+          format: date-time
+        currency:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReceiptLine'
+        subtotal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        tax:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        payment:
+          allOf:
+          - $ref: '#/components/schemas/ReceiptPayment'
+          nullable: true
+        item_count:
+          type: integer
+      required:
+      - currency
+      - item_count
+      - kiosk
+      - lines
+      - order_id
+      - paid_at
+      - payment
+      - receipt_number
+      - store
+      - subtotal
+      - tax
+      - total
+    ReceiptLine:
+      type: object
+      properties:
+        barcode:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        line_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+      required:
+      - barcode
+      - line_total
+      - name
+      - quantity
+      - unit_price
+    ReceiptPayment:
+      type: object
+      properties:
+        method:
+          type: string
+        provider_reference:
+          type: string
+        customer_phone:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - completed_at
+      - customer_phone
+      - method
+      - provider_reference
+    ReceiptStore:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+      required:
+      - address
+      - name
+    SetPinRequest:
+      type: object
+      properties:
+        pin:
+          type: string
+          minLength: 1
+      required:
+      - pin
+    Staff:
+      type: object
+      description: Users of the admin's store. `store_id` comes from the view via
+        context.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRoleEnum'
+          default: STAFF
+        staff_code:
+          type: string
+          nullable: true
+          description: Typed on the kiosk before the PIN.
+          maxLength: 20
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        has_pin:
+          type: boolean
+          readOnly: true
+        created:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created
+      - email
+      - has_pin
+      - id
+    StaffRequest:
+      type: object
+      description: Users of the admin's store. `store_id` comes from the view via
+        context.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/UserRoleEnum'
+          default: STAFF
+        staff_code:
+          type: string
+          nullable: true
+          description: Typed on the kiosk before the PIN.
+          maxLength: 20
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        pin:
+          type: string
+          writeOnly: true
+      required:
+      - email
+    Store:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        currency:
+          type: string
+          maxLength: 3
+        timezone:
+          type: string
+          maxLength: 64
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+          description: 0.05 = 5%
+        default_weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Used when a product has no tolerance of its own.
+        is_active:
+          type: boolean
+        next_receipt_number:
+          type: integer
+          readOnly: true
+          description: Per-store gapless counter.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - next_receipt_number
+    StoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        address:
+          type: string
+          maxLength: 255
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        timezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,1}(?:\.\d{0,4})?$
+          description: 0.05 = 5%
+        default_weight_tolerance_g:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Used when a product has no tolerance of its own.
+        is_active:
+          type: boolean
+      required:
+      - name
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TotalsResult:
+      type: object
+      properties:
+        order:
+          $ref: '#/components/schemas/OrderTotals'
+      required:
+      - order
+    TypeEnum:
+      enum:
+      - RECEIPT_PRINTED
+      - EAS_DEACTIVATED
+      type: string
+      description: |-
+        * `RECEIPT_PRINTED` - RECEIPT_PRINTED
+        * `EAS_DEACTIVATED` - EAS_DEACTIVATED
+    UserRoleEnum:
+      enum:
+      - ADMIN
+      - STAFF
+      type: string
+      description: |-
+        * `ADMIN` - Store admin
+        * `STAFF` - Floor staff
+    WeightOutcomeEnum:
+      enum:
+      - ADDED
+      - REJECTED
+      - OVERRIDDEN
+      type: string
+      description: |-
+        * `ADDED` - Added to order
+        * `REJECTED` - Rejected
+        * `OVERRIDDEN` - Overridden by staff
+    WeightResultEnum:
+      enum:
+      - PASS
+      - FAIL
+      type: string
+      description: |-
+        * `PASS` - Pass
+        * `FAIL` - Fail
+    WeightStatusEnum:
+      enum:
+      - PASSED
+      - OVERRIDDEN
+      - SKIPPED
+      type: string
+      description: |-
+        * `PASSED` - Passed
+        * `OVERRIDDEN` - Overridden by staff
+        * `SKIPPED` - Weight check not required
+    WeightVerification:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+        kiosk:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+          readOnly: true
+        product_name:
+          type: string
+          readOnly: true
+        barcode:
+          type: string
+          readOnly: true
+        expected_weight_g:
+          type: integer
+          readOnly: true
+        tolerance_g:
+          type: integer
+          readOnly: true
+        measured_weight_g:
+          type: integer
+          readOnly: true
+        delta_g:
+          type: integer
+          readOnly: true
+          description: measured - expected
+        result:
+          allOf:
+          - $ref: '#/components/schemas/WeightResultEnum'
+          readOnly: true
+        outcome:
+          allOf:
+          - $ref: '#/components/schemas/WeightOutcomeEnum'
+          readOnly: true
+        override_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        override_reason:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - barcode
+      - created_at
+      - delta_g
+      - expected_weight_g
+      - id
+      - kiosk
+      - measured_weight_g
+      - order
+      - outcome
+      - override_by
+      - override_reason
+      - product
+      - product_name
+      - result
+      - tolerance_g
+  securitySchemes:
+    KioskToken:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 'Device token issued when a kiosk is created: `Authorization: Kiosk
+        <token>`'
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
