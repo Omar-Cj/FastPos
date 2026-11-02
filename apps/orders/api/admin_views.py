@@ -1,15 +1,16 @@
-"""Read-only admin views over orders and the weight-verification audit log (store-scoped)."""
+"""Read-only admin views over orders, the weight-verification audit log and kiosk events (store-scoped)."""
 
 import django_filters
 from django.db.models import Count, Prefetch
 from rest_framework import viewsets
 
 from apps.core.mixins import StoreScopedMixin
-from apps.orders.models import Order, WeightVerification
+from apps.orders.models import KioskEvent, Order, WeightVerification
 
 from .admin_serializers import (
     AdminOrderDetailSerializer,
     AdminOrderListSerializer,
+    KioskEventAdminSerializer,
     WeightVerificationSerializer,
 )
 
@@ -30,6 +31,15 @@ class WeightVerificationFilter(django_filters.FilterSet):
     class Meta:
         model = WeightVerification
         fields = ["result", "outcome", "kiosk", "product"]
+
+
+class KioskEventFilter(django_filters.FilterSet):
+    created_after = django_filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="gte")
+    created_before = django_filters.IsoDateTimeFilter(field_name="created_at", lookup_expr="lte")
+
+    class Meta:
+        model = KioskEvent
+        fields = ["type", "kiosk"]
 
 
 class AdminOrderViewSet(StoreScopedMixin, viewsets.ReadOnlyModelViewSet):
@@ -58,3 +68,11 @@ class AdminWeightVerificationViewSet(StoreScopedMixin, viewsets.ReadOnlyModelVie
     ordering_fields = ["created_at", "delta_g"]
     ordering = ["-created_at"]
     store_field = "order__store"
+
+
+class AdminKioskEventViewSet(StoreScopedMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = KioskEvent.objects.select_related("kiosk")
+    serializer_class = KioskEventAdminSerializer
+    filterset_class = KioskEventFilter
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]

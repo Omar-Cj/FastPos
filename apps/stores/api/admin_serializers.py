@@ -12,8 +12,8 @@ class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = [
-            "id", "name", "address", "currency", "timezone", "tax_rate", "default_weight_tolerance_g",
-            "is_active", "next_receipt_number", "created_at",
+            "id", "name", "address", "currency", "secondary_currency", "secondary_rate", "timezone", "tax_rate",
+            "default_weight_tolerance_g", "is_active", "next_receipt_number", "created_at",
         ]
         read_only_fields = ["id", "next_receipt_number", "created_at"]
 
@@ -31,6 +31,31 @@ class StoreSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unknown timezone.") from exc
         return value
 
+    def validate_secondary_currency(self, value):
+        if value in (None, ""):
+            return None
+        value = value.strip().upper()
+        if not 3 <= len(value) <= 4 or not value.isascii() or not value.isalpha():
+            raise serializers.ValidationError("Currency code must be 3 to 4 letters (e.g. SOS, SLSH).")
+        return value
+
+    def validate(self, attrs):
+        instance = self.instance
+        code = attrs["secondary_currency"] if "secondary_currency" in attrs else getattr(
+            instance, "secondary_currency", None)
+        rate = attrs["secondary_rate"] if "secondary_rate" in attrs else getattr(instance, "secondary_rate", None)
+        if not code:
+            # Clearing (or never setting) the code clears the rate.
+            if "secondary_currency" in attrs or "secondary_rate" in attrs:
+                attrs["secondary_currency"] = None
+                attrs["secondary_rate"] = None
+            return attrs
+        if rate is None:
+            raise serializers.ValidationError({"secondary_rate": ["Required when a secondary currency is set."]})
+        if rate <= 0:
+            raise serializers.ValidationError({"secondary_rate": ["Must be greater than 0."]})
+        return attrs
+
 
 class KioskSerializer(serializers.ModelSerializer):
     is_online = serializers.SerializerMethodField()
@@ -39,9 +64,11 @@ class KioskSerializer(serializers.ModelSerializer):
         model = Kiosk
         fields = [
             "id", "store", "name", "serial_number", "is_active", "key_prefix", "last_seen_at", "is_online",
-            "created_at",
+            "app_version", "device_status", "created_at",
         ]
-        read_only_fields = ["id", "store", "key_prefix", "last_seen_at", "created_at"]
+        read_only_fields = [
+            "id", "store", "key_prefix", "last_seen_at", "app_version", "device_status", "created_at",
+        ]
 
     def get_is_online(self, obj) -> bool:
         return bool(obj.last_seen_at and timezone.now() - obj.last_seen_at <= ONLINE_WINDOW)

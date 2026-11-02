@@ -101,6 +101,63 @@ class TestPoll:
         assert kiosk_client.get(f"{K}/orders/{other.id}/payments/{pid}/").status_code == 404
 
 
+class TestCancel:
+    PENDING_PHONE = "252618888"
+
+    def test_pending_phone_stays_pending_on_poll(self, pay, kiosk_client, order):
+        pid = pay(order, phone=self.PENDING_PHONE).json()["id"]
+        r = kiosk_client.get(f"{K}/orders/{order.id}/payments/{pid}/")
+        assert r.status_code == 200
+        assert r.json()["status"] == "PENDING" and r.json()["order_status"] == "AWAITING_PAYMENT"
+        order.refresh_from_db()
+        assert order.status == Order.Status.AWAITING_PAYMENT
+
+    def test_cancel_reopens_and_is_idempotent(self, pay, kiosk_client, order):
+        pid = pay(order, phone=self.PENDING_PHONE).json()["id"]
+        url = f"{K}/orders/{order.id}/payments/{pid}/cancel/"
+        r = kiosk_client.post(url)
+        assert r.status_code == 200, r.json()
+        body = r.json()
+        assert body["id"] == pid
+        assert (body["status"], body["failure_reason"], body["order_status"]) == (
+            "FAILED", "Abandoned by customer", "OPEN")
+        assert body["completed_at"]
+
+        again = kiosk_client.post(url)
+        assert again.status_code == 200 and again.json() == body
+
+        # The order was reopened, so a fresh attempt is accepted and succeeds.
+        r2 = pay(order)
+        assert r2.status_code == 202
+        assert Payment.objects.get(pk=r2.json()["id"]).status == Payment.Status.SUCCESS
+        order.refresh_from_db()
+        assert order.status == Order.Status.PAID
+
+    def test_cancel_after_success_409(self, pay, kiosk_client, order):
+        pid = pay(order).json()["id"]
+        r = kiosk_client.post(f"{K}/orders/{order.id}/payments/{pid}/cancel/")
+        assert r.status_code == 409 and r.json()["error"]["code"] == "PAYMENT_NOT_PENDING"
+        assert Payment.objects.get(pk=pid).status == Payment.Status.SUCCESS
+
+    def test_payment_of_other_order_404(self, pay, kiosk_client, kiosk, product, order):
+        pid = pay(order, phone=self.PENDING_PHONE).json()["id"]
+        other = order_with_items(kiosk, product)
+        assert kiosk_client.post(f"{K}/orders/{other.id}/payments/{pid}/cancel/").status_code == 404
+        assert Payment.objects.get(pk=pid).status == Payment.Status.PENDING
+
+    def test_other_store_404(self, kiosk_client, other_store, make_product):
+        k = Kiosk(store=other_store, name="K2", serial_number="SN-2")
+        k.issue_token()
+        k.save()
+        other = order_with_items(k, make_product(barcode="9", store_=other_store))
+        payment = Payment.objects.create(order=other, method="WAAFI", amount=other.total, currency="USD",
+                                         customer_phone=self.PENDING_PHONE)
+        r = kiosk_client.post(f"{K}/orders/{other.id}/payments/{payment.id}/cancel/")
+        assert r.status_code == 404
+        payment.refresh_from_db()
+        assert payment.status == Payment.Status.PENDING
+
+
 class TestReceiptAndEvents:
     def test_receipt_groups_identical_products(self, pay, kiosk_client, kiosk, product):
         order = order_with_items(kiosk, product, product)

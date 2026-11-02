@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.orders.models import Order, OrderItem
+from apps.orders.models import KioskEvent, Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -77,3 +77,16 @@ class CancelOrderSerializer(serializers.Serializer):
     staff_code = serializers.CharField(max_length=32, required=False, allow_blank=True)
     pin = serializers.CharField(max_length=32, required=False, allow_blank=True, trim_whitespace=False)
     reason = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class KioskEventCreateSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(choices=KioskEvent.Type.choices)
+    order = serializers.UUIDField(required=False, allow_null=True, default=None)
+    detail = serializers.DictField(required=False, default=dict)
+
+
+class KioskEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KioskEvent
+        fields = ["id", "type", "order", "detail", "created_at"]
+        read_only_fields = fields

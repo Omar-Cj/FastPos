@@ -56,8 +56,23 @@ class KioskClient:
         return {"Idempotency-Key": str(uuid.uuid4())}
 
     # --- endpoints ---------------------------------------------------------------------------
-    def heartbeat(self):
-        return self._request("POST", "heartbeat/")
+    def heartbeat(self, app_version: str | None = None, devices: dict | None = None):
+        body = {}
+        if app_version is not None:
+            body["app_version"] = app_version
+        if devices is not None:
+            body["devices"] = devices
+        return self._request("POST", "heartbeat/", json=body or None)
+
+    def verify_staff(self, staff_code: str, pin: str):
+        return self._request("POST", "staff/verify/", json={"staff_code": staff_code, "pin": pin})
+
+    def kiosk_event(self, type_: str, order_id=None, detail: dict | None = None):
+        """Operational event (`POST events/`), distinct from the per-order `event()` below."""
+        body = {"type": type_, "order": str(order_id) if order_id is not None else None}
+        if detail is not None:
+            body["detail"] = detail
+        return self._request("POST", "events/", json=body)
 
     def open_order(self):
         return self._request("POST", "orders/")
@@ -91,6 +106,9 @@ class KioskClient:
 
     def payment_status(self, order_id, payment_id):
         return self._request("GET", f"orders/{order_id}/payments/{payment_id}/")
+
+    def cancel_payment(self, order_id, payment_id):
+        return self._request("POST", f"orders/{order_id}/payments/{payment_id}/cancel/")
 
     def receipt(self, order_id):
         return self._request("GET", f"orders/{order_id}/receipt/")

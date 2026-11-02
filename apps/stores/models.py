@@ -12,6 +12,13 @@ class Store(TimeStampedModel):
     name = models.CharField(max_length=120)
     address = models.CharField(max_length=255, blank=True)
     currency = models.CharField(max_length=3, default="USD")
+    secondary_currency = models.CharField(
+        max_length=4, null=True, blank=True, help_text="Optional second currency shown on the kiosk, e.g. SLSH."
+    )
+    secondary_rate = models.DecimalField(
+        max_digits=12, decimal_places=4, null=True, blank=True,
+        help_text="Units of secondary currency per 1 unit of the main currency.",
+    )
     timezone = models.CharField(max_length=64, default="Africa/Mogadishu")
     tax_rate = models.DecimalField(max_digits=5, decimal_places=4, default=0, help_text="0.05 = 5%")
     default_weight_tolerance_g = models.PositiveIntegerField(
@@ -34,6 +41,10 @@ class Kiosk(TimeStampedModel):
     key_prefix = models.CharField(max_length=8, editable=False)
     is_active = models.BooleanField(default=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    app_version = models.CharField(max_length=32, blank=True, help_text="Reported by the kiosk on heartbeat.")
+    device_status = models.JSONField(
+        default=dict, blank=True, help_text='Last reported peripheral status, e.g. {"scanner": "OK"}.'
+    )
 
     def __str__(self):
         return f"{self.store.name} / {self.name}"

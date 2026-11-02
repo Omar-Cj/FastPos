@@ -13,7 +13,8 @@ Basket services:
         raises ProductNotFound / OrderNotOpen / WeightMismatch(details={"verification_id": ...})
     override_item(order, verification_id, staff_user, reason) -> OrderItem
     remove_item(order, item_id, staff_user) -> None
-    cancel_order(order, staff_user=None, reason="") -> Order
+    cancel_order(order, staff_user=None, reason="") -> Order   (no staff needed for IDLE_TIMEOUT)
+    record_kiosk_event(kiosk, event_type, order=None, detail=None) -> KioskEvent
     recompute_totals(order) -> Order
 """
 
@@ -38,9 +39,11 @@ from apps.core.exceptions import (
 )
 from apps.stores.models import Store
 
-from .models import Order, OrderItem, WeightVerification
+from .models import KioskEvent, Order, OrderItem, WeightVerification
 
 CENT = Decimal("0.01")
+# The kiosk abandons an unattended basket on its own; a kiosk is an authenticated device, so no staff needed.
+IDLE_TIMEOUT_REASON = "IDLE_TIMEOUT"
 
 
 def set_awaiting_payment(order: Order) -> Order:
@@ -252,9 +255,10 @@ def remove_item(order: Order, item_id: int, staff_user) -> None:
 
 @transaction.atomic
 def cancel_order(order: Order, staff_user=None, reason: str = "") -> Order:
-    """Abandon an OPEN basket. Empty baskets need no staff; baskets with items do."""
+    """Abandon an OPEN basket. Empty baskets need no staff; baskets with items do,
+    unless the kiosk itself is cancelling an unattended basket (`reason == IDLE_TIMEOUT_REASON`)."""
     locked = _lock_open_order(order)
-    if staff_user is None and locked.items.exists():
+    if staff_user is None and reason != IDLE_TIMEOUT_REASON and locked.items.exists():
         raise APIError("Staff approval is required to cancel an order with items.",
                        code="STAFF_REQUIRED", status_code=403)
     locked.status = Order.Status.CANCELLED
@@ -263,3 +267,14 @@ def cancel_order(order: Order, staff_user=None, reason: str = "") -> Order:
     locked.save(update_fields=["status", "cancelled_at", "cancel_reason", "updated_at"])
     _sync(order, locked)
     return locked
+
+
+# --- kiosk events -------------------------------------------------------------------------------
+
+def record_kiosk_event(kiosk, event_type: str, order: Order | None = None, detail: dict | None = None) -> KioskEvent:
+    """Log an operational event from a kiosk. `order`, when given, must belong to the kiosk's store."""
+    if order is not None and order.store_id != kiosk.store_id:
+        raise NotFound("Order not found.", code="ORDER_NOT_FOUND")
+    return KioskEvent.objects.create(
+        store_id=kiosk.store_id, kiosk=kiosk, order=order, type=event_type, detail=detail or {},
+    )

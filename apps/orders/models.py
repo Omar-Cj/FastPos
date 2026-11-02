@@ -131,3 +131,35 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product_name} x1 @ {self.unit_price}"
+
+
+class KioskEvent(models.Model):
+    """Operational log a kiosk reports: staff calls, lock-outs, timeouts, hardware faults."""
+
+    class Type(models.TextChoices):
+        STAFF_CALLED = "STAFF_CALLED", "Staff called"
+        UNKNOWN_BARCODE = "UNKNOWN_BARCODE", "Unknown barcode"
+        PAYMENT_TIMEOUT = "PAYMENT_TIMEOUT", "Payment timeout"
+        TERMINAL_LOCKED = "TERMINAL_LOCKED", "Terminal locked"
+        TERMINAL_RELEASED = "TERMINAL_RELEASED", "Terminal released"
+        WEIGHT_RETRY_LIMIT = "WEIGHT_RETRY_LIMIT", "Weight retry limit reached"
+        IDLE_TIMEOUT = "IDLE_TIMEOUT", "Idle timeout"
+        HARDWARE_FAULT = "HARDWARE_FAULT", "Hardware fault"
+        APP_STARTED = "APP_STARTED", "App started"
+
+    store = models.ForeignKey("stores.Store", on_delete=models.PROTECT, related_name="kiosk_events")
+    kiosk = models.ForeignKey("stores.Kiosk", on_delete=models.PROTECT, related_name="events")
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="kiosk_events")
+    type = models.CharField(max_length=24, choices=Type.choices)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["store", "created_at"]),
+            models.Index(fields=["kiosk", "type"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.type} @ {self.kiosk_id} ({self.created_at:%Y-%m-%d %H:%M})" if self.created_at else self.type

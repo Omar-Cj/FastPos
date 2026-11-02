@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.core.exceptions import APIError, Conflict, NotFound, OrderNotOpen, ProductNotFound, WeightMismatch
 from apps.orders import services
-from apps.orders.models import Order, OrderItem, WeightVerification
+from apps.orders.models import KioskEvent, Order, OrderItem, WeightVerification
 from apps.orders.tasks import cancel_stale_orders
 
 pytestmark = pytest.mark.django_db
@@ -145,6 +145,18 @@ class TestRemoveAndCancel:
         assert exc.value.code == "STAFF_REQUIRED"
         assert services.cancel_order(order, staff_user=staff_user).status == Order.Status.CANCELLED
 
+    def test_idle_timeout_cancel_with_items_needs_no_staff(self, order, kiosk, product):
+        services.add_item(order, kiosk, product.barcode, 500)
+        services.cancel_order(order, reason=services.IDLE_TIMEOUT_REASON)
+        order.refresh_from_db()
+        assert order.status == Order.Status.CANCELLED and order.cancel_reason == "IDLE_TIMEOUT"
+
+    def test_other_reason_with_items_still_needs_staff(self, order, kiosk, product):
+        services.add_item(order, kiosk, product.barcode, 500)
+        with pytest.raises(APIError) as exc:
+            services.cancel_order(order, reason="idle_timeout")
+        assert exc.value.code == "STAFF_REQUIRED" and exc.value.status_code == 403
+
     def test_cannot_cancel_awaiting_payment(self, order, kiosk, product, staff_user):
         services.add_item(order, kiosk, product.barcode, 500)
         services.set_awaiting_payment(order)
@@ -168,3 +180,19 @@ class TestStaleTask:
         assert (stale.status, stale.cancel_reason) == ("CANCELLED", "STALE")
         assert Order.objects.get(pk=fresh.pk).status == "OPEN"
         assert Order.objects.get(pk=waiting.pk).status == "AWAITING_PAYMENT"
+
+
+class TestKioskEvents:
+    def test_record_with_and_without_order(self, order, kiosk):
+        ev = services.record_kiosk_event(kiosk, KioskEvent.Type.STAFF_CALLED, order=order, detail={"why": "help"})
+        assert (ev.store_id, ev.kiosk_id, ev.order_id) == (kiosk.store_id, kiosk.id, order.id)
+        assert ev.detail == {"why": "help"}
+        ev = services.record_kiosk_event(kiosk, KioskEvent.Type.APP_STARTED)
+        assert ev.order is None and ev.detail == {} and ev.store_id == kiosk.store_id
+
+    def test_other_store_order_is_not_found(self, kiosk, other_store, make_kiosk):
+        other_kiosk = make_kiosk(other_store, "Other", "SN-O2")
+        foreign = services.open_order(other_kiosk)
+        with pytest.raises(NotFound):
+            services.record_kiosk_event(kiosk, KioskEvent.Type.STAFF_CALLED, order=foreign)
+        assert not KioskEvent.objects.exists()

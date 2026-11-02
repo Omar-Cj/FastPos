@@ -205,6 +205,116 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/admin/kiosk-events/:
+    get:
+      operationId: admin_kiosk_events_list
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: query
+        name: created_after
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: created_before
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: kiosk
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - APP_STARTED
+          - HARDWARE_FAULT
+          - IDLE_TIMEOUT
+          - PAYMENT_TIMEOUT
+          - STAFF_CALLED
+          - TERMINAL_LOCKED
+          - TERMINAL_RELEASED
+          - UNKNOWN_BARCODE
+          - WEIGHT_RETRY_LIMIT
+        description: |-
+          * `STAFF_CALLED` - Staff called
+          * `UNKNOWN_BARCODE` - Unknown barcode
+          * `PAYMENT_TIMEOUT` - Payment timeout
+          * `TERMINAL_LOCKED` - Terminal locked
+          * `TERMINAL_RELEASED` - Terminal released
+          * `WEIGHT_RETRY_LIMIT` - Weight retry limit reached
+          * `IDLE_TIMEOUT` - Idle timeout
+          * `HARDWARE_FAULT` - Hardware fault
+          * `APP_STARTED` - App started
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKioskEventAdminList'
+          description: ''
+  /api/v1/admin/kiosk-events/{id}/:
+    get:
+      operationId: admin_kiosk_events_retrieve
+      description: |-
+        Filters the queryset to the admin's store.
+
+        Superusers have no store and must pass `?store=<id>` (or `store` in the body on create).
+        Subclasses set `store_field = "store"` (default) to the FK path that leads to the Store,
+        e.g. `"order__store"`.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kiosk event.
+        required: true
+      tags:
+      - admin
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskEventAdmin'
+          description: ''
   /api/v1/admin/kiosks/:
     get:
       operationId: admin_kiosks_list
@@ -722,10 +832,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ProductRequest'
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProductRequest'
-          multipart/form-data:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ProductRequest'
         required: true
@@ -787,10 +897,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ProductRequest'
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProductRequest'
-          multipart/form-data:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ProductRequest'
         required: true
@@ -825,10 +935,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PatchedProductRequest'
-          application/x-www-form-urlencoded:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedProductRequest'
-          multipart/form-data:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedProductRequest'
       security:
@@ -1577,14 +1687,55 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenRefresh'
           description: ''
+  /api/v1/kiosk/events/:
+    post:
+      operationId: kiosk_events_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Report an operational event (staff call, lock-out, timeout, fault)
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KioskEventCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KioskEventCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KioskEventCreateRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskEvent'
+          description: ''
   /api/v1/kiosk/heartbeat/:
     post:
       operationId: kiosk_heartbeat_create
       description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
         device and its store.
-      summary: 'Kiosk heartbeat: marks the device online and returns store settings'
+      summary: 'Kiosk heartbeat: marks the device online, records app/device status,
+        returns store settings'
       tags:
       - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequestRequest'
       security:
       - KioskToken: []
       responses:
@@ -1907,6 +2058,41 @@ paths:
           description: ''
         '404':
           description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+  /api/v1/kiosk/orders/{order_id}/payments/{payment_id}/cancel/:
+    post:
+      operationId: kiosk_orders_payments_cancel_create
+      description: 'Marks the payment FAILED with reason "Abandoned by customer" and
+        reopens the order. Idempotent: an already FAILED payment is returned unchanged.
+        409 PAYMENT_NOT_PENDING if the payment already succeeded.'
+      summary: Abandon a PENDING payment (customer walked away / kiosk countdown expired).
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: payment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+          description: ''
+        '404':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
+        '409':
+          description: 'Error envelope `{"error": {"code", "message", "details"}}`.'
   /api/v1/kiosk/orders/{order_id}/receipt/:
     get:
       operationId: kiosk_orders_receipt_retrieve
@@ -1957,6 +2143,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/KioskProduct'
+          description: ''
+  /api/v1/kiosk/staff/verify/:
+    post:
+      operationId: kiosk_staff_verify_create
+      description: Kiosk endpoints. `self.kiosk` and `self.store` are the calling
+        device and its store.
+      summary: Verify a staff code + PIN for this kiosk's store (403 INVALID_STAFF_PIN
+        otherwise)
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StaffVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StaffVerifyRequest'
+        required: true
+      security:
+      - KioskToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffIdentity'
           description: ''
 components:
   schemas:
@@ -2285,6 +2501,11 @@ components:
         name:
           type: string
           maxLength: 120
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
         created_at:
           type: string
           format: date-time
@@ -2305,15 +2526,53 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
       required:
       - name
+    DeviceStateEnum:
+      enum:
+      - OK
+      - WARN
+      - FAULT
+      - 'OFF'
+      type: string
+      description: |-
+        * `OK` - OK
+        * `WARN` - WARN
+        * `FAULT` - FAULT
+        * `OFF` - OFF
+    DeviceStatusRequest:
+      type: object
+      description: Peripheral status map. Every key is optional; unknown keys are
+        rejected.
+      properties:
+        scanner:
+          $ref: '#/components/schemas/DeviceStateEnum'
+        scale:
+          $ref: '#/components/schemas/DeviceStateEnum'
+        printer:
+          $ref: '#/components/schemas/DeviceStateEnum'
+        eas:
+          $ref: '#/components/schemas/DeviceStateEnum'
+    HeartbeatRequestRequest:
+      type: object
+      properties:
+        app_version:
+          type: string
+          maxLength: 32
+        devices:
+          $ref: '#/components/schemas/DeviceStatusRequest'
     ImportRequestRequest:
       type: object
       properties:
         file:
           type: string
           format: binary
-          description: 'CSV: barcode,name,price,expected_weight_g,weight_tolerance_g,category'
+          description: 'CSV: barcode,name,price,expected_weight_g,weight_tolerance_g,category,name_so'
       required:
       - file
     ImportResult:
@@ -2396,18 +2655,125 @@ components:
         is_online:
           type: boolean
           readOnly: true
+        app_version:
+          type: string
+          readOnly: true
+          description: Reported by the kiosk on heartbeat.
+        device_status:
+          readOnly: true
+          description: 'Last reported peripheral status, e.g. {"scanner": "OK"}.'
         created_at:
           type: string
           format: date-time
           readOnly: true
       required:
+      - app_version
       - created_at
+      - device_status
       - id
       - is_online
       - key_prefix
       - last_seen_at
       - name
       - store
+    KioskEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/KioskEventTypeEnum'
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        detail:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - detail
+      - id
+      - order
+      - type
+    KioskEventAdmin:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kiosk:
+          type: integer
+          readOnly: true
+        kiosk_name:
+          type: string
+          readOnly: true
+        order:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        type:
+          allOf:
+          - $ref: '#/components/schemas/KioskEventTypeEnum'
+          readOnly: true
+        detail:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - detail
+      - id
+      - kiosk
+      - kiosk_name
+      - order
+      - type
+    KioskEventCreateRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/KioskEventTypeEnum'
+        order:
+          type: string
+          format: uuid
+          nullable: true
+        detail:
+          type: object
+          additionalProperties: {}
+      required:
+      - type
+    KioskEventTypeEnum:
+      enum:
+      - STAFF_CALLED
+      - UNKNOWN_BARCODE
+      - PAYMENT_TIMEOUT
+      - TERMINAL_LOCKED
+      - TERMINAL_RELEASED
+      - WEIGHT_RETRY_LIMIT
+      - IDLE_TIMEOUT
+      - HARDWARE_FAULT
+      - APP_STARTED
+      type: string
+      description: |-
+        * `STAFF_CALLED` - Staff called
+        * `UNKNOWN_BARCODE` - Unknown barcode
+        * `PAYMENT_TIMEOUT` - Payment timeout
+        * `TERMINAL_LOCKED` - Terminal locked
+        * `TERMINAL_RELEASED` - Terminal released
+        * `WEIGHT_RETRY_LIMIT` - Weight retry limit reached
+        * `IDLE_TIMEOUT` - Idle timeout
+        * `HARDWARE_FAULT` - Hardware fault
+        * `APP_STARTED` - App started
     KioskProduct:
       type: object
       properties:
@@ -2420,6 +2786,11 @@ components:
         name:
           type: string
           readOnly: true
+        name_so:
+          type: string
+          readOnly: true
+          nullable: true
+          description: Somali name (optional).
         price:
           type: string
           format: decimal
@@ -2443,13 +2814,19 @@ components:
           type: string
           nullable: true
           readOnly: true
+        image_url:
+          type: string
+          nullable: true
+          readOnly: true
       required:
       - barcode
       - category
       - expected_weight_g
       - has_eas_tag
       - id
+      - image_url
       - name
+      - name_so
       - price
       - requires_weight_check
       - tolerance_g
@@ -2589,7 +2966,7 @@ components:
       type: object
       properties:
         type:
-          $ref: '#/components/schemas/TypeEnum'
+          $ref: '#/components/schemas/OrderEventTypeEnum'
       required:
       - type
     OrderEventResponse:
@@ -2607,6 +2984,14 @@ components:
       - order_id
       - recorded_at
       - type
+    OrderEventTypeEnum:
+      enum:
+      - RECEIPT_PRINTED
+      - EAS_DEACTIVATED
+      type: string
+      description: |-
+        * `RECEIPT_PRINTED` - RECEIPT_PRINTED
+        * `EAS_DEACTIVATED` - EAS_DEACTIVATED
     OrderItem:
       type: object
       properties:
@@ -2830,6 +3215,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Category'
+    PaginatedKioskEventAdminList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KioskEventAdmin'
     PaginatedKioskList:
       type: object
       required:
@@ -2952,6 +3360,11 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
     PatchedKioskRequest:
       type: object
       properties:
@@ -2976,6 +3389,11 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
         category:
           type: integer
           nullable: true
@@ -3003,6 +3421,11 @@ components:
           type: boolean
         is_active:
           type: boolean
+        image:
+          type: string
+          format: binary
+          writeOnly: true
+          nullable: true
     PatchedStaffRequest:
       type: object
       description: Users of the admin's store. `store_id` comes from the view via
@@ -3054,6 +3477,17 @@ components:
           type: string
           minLength: 1
           maxLength: 3
+        secondary_currency:
+          type: string
+          nullable: true
+          description: Optional second currency shown on the kiosk, e.g. SLSH.
+          maxLength: 4
+        secondary_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+          nullable: true
+          description: Units of secondary currency per 1 unit of the main currency.
         timezone:
           type: string
           minLength: 1
@@ -3223,6 +3657,11 @@ components:
         name:
           type: string
           maxLength: 200
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
         category:
           type: integer
           nullable: true
@@ -3256,6 +3695,10 @@ components:
           type: boolean
         is_active:
           type: boolean
+        image_url:
+          type: string
+          nullable: true
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -3271,6 +3714,7 @@ components:
       - effective_tolerance_g
       - expected_weight_g
       - id
+      - image_url
       - name
       - price
       - updated_at
@@ -3285,6 +3729,11 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+        name_so:
+          type: string
+          nullable: true
+          description: Somali name (optional).
+          maxLength: 120
         category:
           type: integer
           nullable: true
@@ -3312,6 +3761,11 @@ components:
           type: boolean
         is_active:
           type: boolean
+        image:
+          type: string
+          format: binary
+          writeOnly: true
+          nullable: true
       required:
       - barcode
       - expected_weight_g
@@ -3473,6 +3927,22 @@ components:
       - email
       - has_pin
       - id
+    StaffIdentity:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        staff_code:
+          type: string
+      required:
+      - id
+      - name
+      - role
+      - staff_code
     StaffRequest:
       type: object
       description: Users of the admin's store. `store_id` comes from the view via
@@ -3512,6 +3982,20 @@ components:
           writeOnly: true
       required:
       - email
+    StaffVerifyRequest:
+      type: object
+      properties:
+        staff_code:
+          type: string
+          minLength: 1
+          maxLength: 32
+        pin:
+          type: string
+          minLength: 1
+          maxLength: 32
+      required:
+      - pin
+      - staff_code
     Store:
       type: object
       properties:
@@ -3527,6 +4011,17 @@ components:
         currency:
           type: string
           maxLength: 3
+        secondary_currency:
+          type: string
+          nullable: true
+          description: Optional second currency shown on the kiosk, e.g. SLSH.
+          maxLength: 4
+        secondary_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+          nullable: true
+          description: Units of secondary currency per 1 unit of the main currency.
         timezone:
           type: string
           maxLength: 64
@@ -3570,6 +4065,17 @@ components:
           type: string
           minLength: 1
           maxLength: 3
+        secondary_currency:
+          type: string
+          nullable: true
+          description: Optional second currency shown on the kiosk, e.g. SLSH.
+          maxLength: 4
+        secondary_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+          nullable: true
+          description: Units of secondary currency per 1 unit of the main currency.
         timezone:
           type: string
           minLength: 1
@@ -3639,14 +4145,6 @@ components:
           $ref: '#/components/schemas/OrderTotals'
       required:
       - order
-    TypeEnum:
-      enum:
-      - RECEIPT_PRINTED
-      - EAS_DEACTIVATED
-      type: string
-      description: |-
-        * `RECEIPT_PRINTED` - RECEIPT_PRINTED
-        * `EAS_DEACTIVATED` - EAS_DEACTIVATED
     UserRoleEnum:
       enum:
       - ADMIN

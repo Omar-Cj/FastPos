@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.services import verify_staff
+from apps.core.exceptions import NotFound
 from apps.core.idempotency import HEADER, get_idempotency_key
 from apps.core.mixins import KioskViewMixin
 from apps.orders import services
@@ -16,6 +17,8 @@ from .kiosk_serializers import (
     AddItemSerializer,
     CancelOrderSerializer,
     ItemResultSerializer,
+    KioskEventCreateSerializer,
+    KioskEventSerializer,
     OrderItemSerializer,
     OrderSerializer,
     OrderTotalsSerializer,
@@ -111,3 +114,19 @@ class OrderCancelView(_OrderMixin, APIView):
             staff = verify_staff(self.store, data.get("staff_code"), data.get("pin"))
         services.cancel_order(order, staff_user=staff, reason=data["reason"])
         return Response(_order_payload(order.pk))
+
+
+class KioskEventCreateView(KioskViewMixin, APIView):
+    @extend_schema(request=KioskEventCreateSerializer, responses={201: KioskEventSerializer},
+                   summary="Report an operational event (staff call, lock-out, timeout, fault)")
+    def post(self, request):
+        body = KioskEventCreateSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        data = body.validated_data
+        order = None
+        if data["order"] is not None:
+            order = Order.objects.filter(pk=data["order"]).first()
+            if order is None:
+                raise NotFound("Order not found.", code="ORDER_NOT_FOUND")
+        event = services.record_kiosk_event(self.kiosk, data["type"], order=order, detail=data["detail"])
+        return Response(KioskEventSerializer(event).data, status=status.HTTP_201_CREATED)

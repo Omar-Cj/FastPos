@@ -4,6 +4,7 @@
     process_payment   -> provider.charge() -> complete_payment()
     complete_payment  -> SUCCESS: order PAID (receipt number)   FAILED: order OPEN again (retry)
     reconcile task    -> settles PENDING payments via provider.check_status()
+    abandon_payment   -> kiosk gives up on a PENDING payment: FAILED "Abandoned by customer", order OPEN
 """
 
 from __future__ import annotations
@@ -13,12 +14,14 @@ from decimal import Decimal
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from apps.core.exceptions import OrderNotOpen, OrderNotPaid, PaymentInProgress
+from apps.core.exceptions import Conflict, OrderNotOpen, OrderNotPaid, PaymentInProgress
 from apps.orders import services as order_services
 from apps.orders.models import Order
 
 from .models import Payment
 from .providers.base import ProviderResult
+
+ABANDON_REASON = "Abandoned by customer"
 
 
 def initiate_payment(order: Order, method: str, customer_phone: str,
@@ -97,6 +100,19 @@ def complete_payment(payment: Payment, result: ProviderResult) -> Payment:
         else:  # PENDING: keep waiting, the reconcile task settles it.
             payment.save(update_fields=fields)
     return payment
+
+
+def abandon_payment(payment: Payment) -> Payment:
+    """Kiosk-initiated cancel of a payment attempt. Idempotent for FAILED; a SUCCESS cannot be undone."""
+    with transaction.atomic():
+        payment = Payment.objects.select_for_update().select_related("order").get(pk=payment.pk)
+        if payment.status == Payment.Status.SUCCESS:
+            raise Conflict("Payment already succeeded.", code="PAYMENT_NOT_PENDING")
+        if payment.status == Payment.Status.PENDING:
+            # Same transaction keeps the row lock; complete_payment's nested atomic is a savepoint.
+            complete_payment(payment, ProviderResult("FAILED", message=ABANDON_REASON))
+    # Fresh fetch (not refresh_from_db) so the cached order reflects the reopen.
+    return Payment.objects.select_related("order").get(pk=payment.pk)
 
 
 def build_receipt(order: Order) -> dict:

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.orders.models import Order, OrderItem, WeightVerification
+from apps.orders.models import KioskEvent, Order, OrderItem, WeightVerification
 from apps.payments.models import Payment
 
 
@@ -61,4 +61,13 @@ class AdminOrderDetailSerializer(AdminOrderListSerializer):
             "updated_at", "cancelled_at", "cancel_reason", "receipt_printed_at", "eas_deactivated_at",
             "items", "verifications", "payments",
         ]
+        read_only_fields = fields
+
+
+class KioskEventAdminSerializer(serializers.ModelSerializer):
+    kiosk_name = serializers.CharField(source="kiosk.name", read_only=True)
+
+    class Meta:
+        model = KioskEvent
+        fields = ["id", "kiosk", "kiosk_name", "order", "type", "detail", "created_at"]
         read_only_fields = fields

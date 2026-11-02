@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, OrderItem, WeightVerification
+from .models import KioskEvent, Order, OrderItem, WeightVerification
 
 
 class OrderItemInline(admin.TabularInline):
@@ -25,3 +25,10 @@ class WeightVerificationAdmin(admin.ModelAdmin):
                     "delta_g", "tolerance_g", "result", "outcome", "override_by")
     list_filter = ("result", "outcome", "kiosk")
     readonly_fields = [f.name for f in WeightVerification._meta.fields]
+
+
+@admin.register(KioskEvent)
+class KioskEventAdmin(admin.ModelAdmin):
+    list_display = ("id", "created_at", "store", "kiosk", "type", "order")
+    list_filter = ("store", "type", "kiosk")
+    readonly_fields = [f.name for f in KioskEvent._meta.fields]

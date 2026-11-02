@@ -27,4 +27,4 @@ class ProductLookupView(KioskViewMixin, APIView):
         )
         if product is None:
             raise ProductNotFound()
-        return Response(KioskProductSerializer(product).data)
+        return Response(KioskProductSerializer(product, context={"request": request}).data)

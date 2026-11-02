@@ -1,6 +1,7 @@
 import io
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 
 from apps.catalog.models import Category, Product
 from apps.catalog.services import import_products_csv
@@ -15,10 +16,14 @@ class TestKioskLookup:
         r = kiosk_client.get(LOOKUP, {"barcode": product.barcode})
         assert r.status_code == 200
         assert r.json() == {
-            "id": product.id, "barcode": product.barcode, "name": "Rice 500g", "price": "2.50",
+            "id": product.id, "barcode": product.barcode, "name": "Rice 500g", "name_so": None, "price": "2.50",
             "expected_weight_g": 500, "tolerance_g": 10, "requires_weight_check": True, "has_eas_tag": True,
-            "category": "Grocery",
+            "category": "Grocery", "image_url": None,
         }
+
+    def test_lookup_name_so(self, kiosk_client, make_product):
+        make_product(barcode="77", name_so="Bariis")
+        assert kiosk_client.get(LOOKUP, {"barcode": "77"}).json()["name_so"] == "Bariis"
 
     def test_effective_tolerance_from_product(self, kiosk_client, make_product):
         make_product(barcode="42", tolerance=25)
@@ -51,6 +56,11 @@ class TestCategories:
         assert other_admin_client.patch(f"{CATEGORIES}{category.id}/", {"name": "x"}).status_code == 404
         # same name in another store is fine
         assert other_admin_client.post(CATEGORIES, {"name": "Grocery"}).status_code == 201
+
+    def test_name_so(self, admin_client):
+        r = admin_client.post(CATEGORIES, {"name": "Fruit", "name_so": "Miro"})
+        assert r.status_code == 201
+        assert r.json()["name_so"] == "Miro"
 
 
 class TestProducts:
@@ -110,6 +120,37 @@ class TestProducts:
         assert staff_client.get(PRODUCTS).status_code == 403
         assert kiosk_client.get(PRODUCTS).status_code in (401, 403)
 
+    def test_json_create_with_name_so(self, admin_client):
+        r = admin_client.post(PRODUCTS, {
+            "barcode": "55", "name": "Rice", "name_so": "Bariis", "price": "1.00", "expected_weight_g": 10,
+        }, format="json")
+        assert r.status_code == 201, r.json()
+        assert r.json()["name_so"] == "Bariis"
+        assert r.json()["image_url"] is None
+        assert "image" not in r.json()
+
+    def test_multipart_image_upload(self, admin_client, kiosk_client, product, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        buf = io.BytesIO()
+        Image.new("RGB", (2, 2), "red").save(buf, format="PNG")
+        upload = SimpleUploadedFile("rice.png", buf.getvalue(), content_type="image/png")
+        r = admin_client.patch(f"{PRODUCTS}{product.id}/", {"image": upload, "name_so": "Bariis"},
+                               format="multipart")
+        assert r.status_code == 200, r.json()
+        url = r.json()["image_url"]
+        assert url.startswith("http://testserver/media/products/") and url.endswith(".png")
+        product.refresh_from_db()
+        assert product.name_so == "Bariis"
+        assert (tmp_path / product.image.name).is_file()
+        assert kiosk_client.get(LOOKUP, {"barcode": product.barcode}).json()["image_url"] == url
+
+    def test_non_image_upload_rejected(self, admin_client, product, settings, tmp_path):
+        settings.MEDIA_ROOT = tmp_path
+        upload = SimpleUploadedFile("x.png", b"not an image", content_type="image/png")
+        r = admin_client.patch(f"{PRODUCTS}{product.id}/", {"image": upload}, format="multipart")
+        assert r.status_code == 400
+        assert "image" in r.json()["error"]["details"]
+
 
 CSV = (
     "barcode,name,price,expected_weight_g,weight_tolerance_g,category\n"
@@ -161,10 +202,31 @@ class TestImportExport:
         assert r["Content-Type"].startswith("text/csv")
         assert "attachment" in r["Content-Disposition"]
         text = r.content.decode()
-        assert text.splitlines()[0] == "barcode,name,price,expected_weight_g,weight_tolerance_g,category"
-        assert '1,"Apple, green",3.00,500,7,Grocery' in text
+        assert text.splitlines()[0] == "barcode,name,price,expected_weight_g,weight_tolerance_g,category,name_so"
+        assert '1,"Apple, green",3.00,500,7,Grocery,' in text
         # re-import into another store reproduces the catalogue
         res = self._upload(other_admin_client, text)
         assert res.json() == {"created": 2, "updated": 0, "errors": []}
         other = other_admin_client.get(f"{PRODUCTS}export/").content.decode()
         assert other == text
+
+    def test_name_so_column(self, admin_client, product, store):
+        text = (
+            "barcode,name,price,expected_weight_g,weight_tolerance_g,category,name_so\n"
+            f"{product.barcode},Rice,2.50,500,,Grocery,Bariis\n"
+            "200,Milk,1.45,1035,,,\n"
+        )
+        assert self._upload(admin_client, text).json() == {"created": 1, "updated": 1, "errors": []}
+        product.refresh_from_db()
+        assert product.name_so == "Bariis"
+        assert Product.objects.get(store=store, barcode="200").name_so is None
+        exported = admin_client.get(f"{PRODUCTS}export/").content.decode()
+        assert f"{product.barcode},Rice,2.50,500,,Grocery,Bariis" in exported
+
+    def test_import_without_name_so_keeps_existing(self, admin_client, product):
+        product.name_so = "Bariis"
+        product.save()
+        text = f"barcode,name,price,expected_weight_g\n{product.barcode},Rice 2,2.50,500\n"
+        assert self._upload(admin_client, text).json() == {"created": 0, "updated": 1, "errors": []}
+        product.refresh_from_db()
+        assert (product.name, product.name_so) == ("Rice 2", "Bariis")

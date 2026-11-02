@@ -59,6 +59,22 @@ class PaymentDetailView(_KioskOrderMixin, APIView):
         return Response(PaymentStatusSerializer(payment).data)
 
 
+class PaymentCancelView(_KioskOrderMixin, APIView):
+    @extend_schema(
+        request=None,
+        responses={200: PaymentStatusSerializer, 404: ERROR, 409: ERROR},
+        summary="Abandon a PENDING payment (customer walked away / kiosk countdown expired).",
+        description="Marks the payment FAILED with reason \"Abandoned by customer\" and reopens the order. "
+                    "Idempotent: an already FAILED payment is returned unchanged. "
+                    "409 PAYMENT_NOT_PENDING if the payment already succeeded.",
+    )
+    def post(self, request, order_id, payment_id):
+        order = self.get_order()
+        payment = get_object_or_404(Payment, pk=payment_id, order=order)
+        payment = services.abandon_payment(payment)
+        return Response(PaymentStatusSerializer(payment).data)
+
+
 class ReceiptView(_KioskOrderMixin, APIView):
     @extend_schema(responses={200: ReceiptSerializer, 404: ERROR, 409: ERROR},
                    summary="Receipt of a paid order.")

@@ -10,7 +10,7 @@ from django.db import transaction
 
 from apps.catalog.models import Category, Product
 
-CSV_COLUMNS = ["barcode", "name", "price", "expected_weight_g", "weight_tolerance_g", "category"]
+CSV_COLUMNS = ["barcode", "name", "price", "expected_weight_g", "weight_tolerance_g", "category", "name_so"]
 REQUIRED_COLUMNS = {"barcode", "name", "price", "expected_weight_g"}
 
 
@@ -53,6 +53,10 @@ def _parse_row(row: dict) -> dict:
     category = (row.get("category") or "").strip()
     if len(category) > 120:
         raise ValueError("category is longer than 120 characters.")
+    name_so = (row.get("name_so") or "").strip()
+    if len(name_so) > 120:
+        raise ValueError("name_so is longer than 120 characters.")
+    extra = {"name_so": name_so or None} if "name_so" in row else {}
     return {
         "barcode": barcode,
         "name": name,
@@ -60,6 +64,7 @@ def _parse_row(row: dict) -> dict:
         "expected_weight_g": _int("expected_weight_g", positive=True),
         "weight_tolerance_g": _int("weight_tolerance_g", optional=True),
         "category": category,
+        **extra,
     }
 
 
@@ -76,8 +81,9 @@ def _read_text(file_obj) -> str:
 def import_products_csv(store, file_obj) -> dict:
     """Upsert products of `store` by barcode from a CSV file.
 
-    Header: barcode,name,price,expected_weight_g,weight_tolerance_g,category (the last two optional).
-    Blank tolerance = store default; blank category = none; unknown category names are created.
+    Header: barcode,name,price,expected_weight_g,weight_tolerance_g,category,name_so (the last three optional).
+    Blank tolerance = store default; blank category = none; unknown category names are created. Blank name_so =
+    none; a file without the name_so column leaves existing Somali names untouched.
     Invalid rows are reported and skipped; valid rows are applied. `row` is the line number in the file
     (the header is line 1).
     """
@@ -135,5 +141,6 @@ def export_products_csv(queryset) -> str:
             p.expected_weight_g,
             "" if p.weight_tolerance_g is None else p.weight_tolerance_g,
             p.category.name if p.category_id else "",
+            p.name_so or "",
         ])
     return buf.getvalue()

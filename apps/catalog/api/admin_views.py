@@ -5,7 +5,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.catalog import services
@@ -39,6 +39,7 @@ class CategoryViewSet(_StoreContextMixin, viewsets.ModelViewSet):
 class ProductViewSet(_StoreContextMixin, viewsets.ModelViewSet):
     queryset = Product.objects.select_related("store", "category").order_by("name")
     serializer_class = ProductSerializer
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     filterset_fields = ["category", "is_active", "requires_weight_check"]
     search_fields = ["barcode", "name"]
     ordering_fields = ["name", "price", "updated_at"]

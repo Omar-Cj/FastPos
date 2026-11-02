@@ -11,4 +11,5 @@ urlpatterns = [
     path("orders/<uuid:order_id>/items/<int:item_id>/", v.OrderItemDeleteView.as_view(),
          name="kiosk-order-item-delete"),
     path("orders/<uuid:order_id>/cancel/", v.OrderCancelView.as_view(), name="kiosk-order-cancel"),
+    path("events/", v.KioskEventCreateView.as_view(), name="kiosk-event-create"),
 ]

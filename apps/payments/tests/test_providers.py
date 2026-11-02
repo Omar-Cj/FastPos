@@ -67,6 +67,16 @@ class TestMock:
         assert MockProvider().check_status(make_payment(phone="252610000000")).status == "FAILED"
         assert MockProvider().check_status(make_payment(phone="252619999")).status == "FAILED"
 
+    def test_pending_suffix(self, settings, make_payment):
+        settings.PAYMENT_MOCK_OUTCOME = "success"
+        payment = make_payment(phone="252618888")
+        charged = MockProvider().charge(payment)
+        assert (charged.status, charged.message, charged.response) == ("PENDING", "Awaiting customer",
+                                                                       {"outcome": "pending"})
+        assert not charged.is_terminal and charged.request["phone"] == "252618888"
+        checked = MockProvider().check_status(payment)
+        assert (checked.status, checked.message) == ("PENDING", "Awaiting customer")
+
 
 class TestRegistry:
     def test_mock_backend_routes_everything_to_mock(self, settings):

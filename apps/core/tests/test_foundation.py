@@ -129,3 +129,16 @@ class TestLifecycle:
     def test_reopen_after_failed_payment(self, kiosk, product):
         o = services.set_awaiting_payment(_order_with_item(kiosk, product))
         assert services.reopen(o).status == Order.Status.OPEN
+
+
+def test_cors_preflight_allows_idempotency_key(client, settings):
+    """The Flutter web kiosk sends Idempotency-Key on POST items/ and payments/; the preflight must allow it."""
+    settings.CORS_ALLOWED_ORIGINS = ["http://kiosk.test"]
+    resp = client.options(
+        "/api/v1/kiosk/orders/",
+        HTTP_ORIGIN="http://kiosk.test",
+        HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
+        HTTP_ACCESS_CONTROL_REQUEST_HEADERS="authorization,content-type,idempotency-key",
+    )
+    assert resp.status_code == 200
+    assert "idempotency-key" in resp["Access-Control-Allow-Headers"]

@@ -103,3 +103,63 @@ def test_paths_and_bodies(client):
     assert bodies[4] == {"method": "EDAHAB", "customer_phone": "252621111111"}
     assert "Idempotency-Key" in responses.calls[4].request.headers
     assert bodies[6] == {"type": "RECEIPT_PRINTED"}
+
+
+@responses.activate
+def test_heartbeat_without_args_sends_no_body(client):
+    responses.post(API + "heartbeat/", json={}, status=200)
+    client.heartbeat()
+    assert responses.calls[0].request.body is None
+
+
+@responses.activate
+def test_heartbeat_with_status_body(client):
+    responses.post(API + "heartbeat/", json={}, status=200)
+    devices = {"scanner": "OK", "scale": "WARN", "printer": "OK", "eas": "OFF"}
+    client.heartbeat(app_version="0.1.0", devices=devices)
+    client.heartbeat(app_version="0.2.0")
+    assert json.loads(responses.calls[0].request.body) == {"app_version": "0.1.0", "devices": devices}
+    assert json.loads(responses.calls[1].request.body) == {"app_version": "0.2.0"}
+
+
+@responses.activate
+def test_verify_staff(client):
+    identity = {"id": 2, "name": "Hodan Cabdi", "role": "STAFF", "staff_code": "1001"}
+    responses.post(API + "staff/verify/", json=identity, status=200)
+    assert client.verify_staff("1001", "1234") == (200, identity)
+    assert json.loads(responses.calls[0].request.body) == {"staff_code": "1001", "pin": "1234"}
+
+
+@responses.activate
+def test_verify_staff_bad_pin_raises(client):
+    responses.post(API + "staff/verify/", json={"error": {"code": "INVALID_STAFF_PIN", "message": "no"}},
+                   status=403)
+    with pytest.raises(KioskAPIError) as exc:
+        client.verify_staff("1001", "0000")
+    assert (exc.value.code, exc.value.status) == ("INVALID_STAFF_PIN", 403)
+
+
+@responses.activate
+def test_kiosk_event_bodies(client):
+    responses.post(API + "events/", json={"id": 1}, status=201)
+    assert client.kiosk_event("APP_STARTED") == (201, {"id": 1})
+    client.kiosk_event("PAYMENT_TIMEOUT", order_id=uuid.UUID(OID), detail={"order": OID, "payment": "p1"})
+    bodies = [json.loads(c.request.body) for c in responses.calls]
+    assert bodies[0] == {"type": "APP_STARTED", "order": None}
+    assert bodies[1] == {"type": "PAYMENT_TIMEOUT", "order": OID, "detail": {"order": OID, "payment": "p1"}}
+
+
+@responses.activate
+def test_cancel_payment(client):
+    body = {"id": "p1", "status": "FAILED", "failure_reason": "Abandoned by customer", "order_status": "OPEN"}
+    responses.post(API + f"orders/{OID}/payments/p1/cancel/", json=body, status=200)
+    assert client.cancel_payment(OID, "p1") == (200, body)
+
+
+@responses.activate
+def test_cancel_payment_conflict_raises(client):
+    responses.post(API + f"orders/{OID}/payments/p1/cancel/",
+                   json={"error": {"code": "PAYMENT_NOT_PENDING", "message": "paid"}}, status=409)
+    with pytest.raises(KioskAPIError) as exc:
+        client.cancel_payment(OID, "p1")
+    assert exc.value.code == "PAYMENT_NOT_PENDING"

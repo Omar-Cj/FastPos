@@ -6,6 +6,7 @@ from apps.core.models import TimeStampedModel
 class Category(TimeStampedModel):
     store = models.ForeignKey("stores.Store", on_delete=models.CASCADE, related_name="categories")
     name = models.CharField(max_length=120)
+    name_so = models.CharField(max_length=120, null=True, blank=True, help_text="Somali name (optional).")
 
     class Meta:
         verbose_name_plural = "categories"
@@ -26,6 +27,8 @@ class Product(TimeStampedModel):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
     barcode = models.CharField(max_length=64, db_index=True)
     name = models.CharField(max_length=200)
+    name_so = models.CharField(max_length=120, null=True, blank=True, help_text="Somali name (optional).")
+    image = models.ImageField(upload_to="products/%Y/%m/", null=True, blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2)
     expected_weight_g = models.PositiveIntegerField(help_text="Weight of one unit incl. packaging, in grams.")
     weight_tolerance_g = models.PositiveIntegerField(null=True, blank=True, help_text="Null = store default.")

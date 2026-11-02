@@ -7,12 +7,13 @@ import pytest
 
 from apps.core.exceptions import WeightMismatch
 from apps.orders import services
-from apps.orders.models import Order, WeightVerification
+from apps.orders.models import KioskEvent, Order, WeightVerification
 
 pytestmark = pytest.mark.django_db
 
 K = "/api/v1/kiosk/orders/"
 A = "/api/v1/admin/"
+E = "/api/v1/kiosk/events/"
 
 
 def _items(order_id):
@@ -132,6 +133,54 @@ class TestKioskStaffActions:
         r = kiosk_client.post(f"{K}{order_id}/cancel/", {"staff_code": "S1", "pin": "1234", "reason": "x"})
         assert r.status_code == 200 and r.json()["cancel_reason"] == "x"
 
+    def test_idle_timeout_cancel_with_items_without_staff(self, kiosk_client, order_id, product):
+        kiosk_client.post(_items(order_id), {"barcode": product.barcode, "measured_weight_g": 500})
+        r = kiosk_client.post(f"{K}{order_id}/cancel/", {"reason": "left"})
+        assert r.status_code == 403 and r.json()["error"]["code"] == "STAFF_REQUIRED"
+        r = kiosk_client.post(f"{K}{order_id}/cancel/", {"reason": "IDLE_TIMEOUT"})
+        assert r.status_code == 200
+        assert r.json()["status"] == "CANCELLED" and r.json()["cancel_reason"] == "IDLE_TIMEOUT"
+
+
+class TestKioskEvents:
+    def test_create_with_order(self, kiosk_client, order_id, kiosk):
+        r = kiosk_client.post(E, {"type": "STAFF_CALLED", "order": order_id, "detail": {"stage": "scan"}},
+                              format="json")
+        assert r.status_code == 201
+        body = r.json()
+        assert set(body) == {"id", "type", "order", "detail", "created_at"}
+        assert (body["type"], body["order"], body["detail"]) == ("STAFF_CALLED", order_id, {"stage": "scan"})
+        ev = KioskEvent.objects.get(pk=body["id"])
+        assert ev.kiosk_id == kiosk.id and ev.store_id == kiosk.store_id
+
+    def test_create_without_order(self, kiosk_client):
+        r = kiosk_client.post(E, {"type": "APP_STARTED"}, format="json")
+        assert r.status_code == 201 and r.json()["order"] is None and r.json()["detail"] == {}
+        r = kiosk_client.post(E, {"type": "HARDWARE_FAULT", "order": None, "detail": {"device": "scale"}},
+                              format="json")
+        assert r.status_code == 201 and r.json()["order"] is None
+
+    def test_other_store_or_unknown_order_is_404(self, kiosk_client, other_kiosk_client):
+        foreign = other_kiosk_client.post(K).json()["id"]
+        for oid in (foreign, str(uuid.uuid4())):
+            r = kiosk_client.post(E, {"type": "STAFF_CALLED", "order": oid}, format="json")
+            assert r.status_code == 404
+        assert not KioskEvent.objects.exists()
+
+    def test_bad_type_is_400(self, kiosk_client):
+        r = kiosk_client.post(E, {"type": "NOPE"}, format="json")
+        assert r.status_code == 400 and r.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    def test_requires_kiosk_auth(self, anon_client, admin_client):
+        assert anon_client.post(E, {"type": "APP_STARTED"}, format="json").status_code == 401
+        assert admin_client.post(E, {"type": "APP_STARTED"}, format="json").status_code in (401, 403)
+
+    def test_does_not_clash_with_order_events_route(self, kiosk_client, order_id):
+        from django.urls import resolve
+
+        assert resolve(E).url_name == "kiosk-event-create"
+        assert resolve(f"{K}{order_id}/events/").url_name == "kiosk-order-events"
+
 
 @pytest.fixture
 def paid_setup(kiosk, product, store):
@@ -181,3 +230,40 @@ class TestAdmin:
 
     def test_kiosk_cannot_read_admin(self, kiosk_client):
         assert kiosk_client.get(f"{A}orders/").status_code in (401, 403)
+
+
+class TestAdminKioskEvents:
+    @pytest.fixture
+    def events(self, kiosk, store, other_store, make_kiosk):
+        k2 = make_kiosk(store, "Kiosk 2", "SN-K2")
+        foreign_kiosk = make_kiosk(other_store, "Foreign", "SN-F")
+        e1 = services.record_kiosk_event(kiosk, KioskEvent.Type.STAFF_CALLED)
+        e2 = services.record_kiosk_event(kiosk, KioskEvent.Type.IDLE_TIMEOUT)
+        e3 = services.record_kiosk_event(k2, KioskEvent.Type.STAFF_CALLED)
+        services.record_kiosk_event(foreign_kiosk, KioskEvent.Type.STAFF_CALLED)
+        return e1, e2, e3, k2
+
+    def test_list_is_scoped_and_ordered(self, admin_client, other_admin_client, events):
+        e1, e2, e3, _ = events
+        r = admin_client.get(f"{A}kiosk-events/")
+        assert r.status_code == 200 and r.json()["count"] == 3
+        rows = r.json()["results"]
+        assert [x["id"] for x in rows] == [e3.id, e2.id, e1.id]
+        assert {x["kiosk_name"] for x in rows} == {"Kiosk 1", "Kiosk 2"}
+        assert other_admin_client.get(f"{A}kiosk-events/").json()["count"] == 1
+        assert other_admin_client.get(f"{A}kiosk-events/{e1.id}/").status_code == 404
+
+    def test_filters(self, admin_client, events):
+        _, _, _, k2 = events
+        assert admin_client.get(f"{A}kiosk-events/?type=STAFF_CALLED").json()["count"] == 2
+        assert admin_client.get(f"{A}kiosk-events/?type=IDLE_TIMEOUT").json()["count"] == 1
+        assert admin_client.get(f"{A}kiosk-events/?kiosk={k2.id}").json()["count"] == 1
+        assert admin_client.get(f"{A}kiosk-events/?type=BOGUS").status_code == 400
+        assert admin_client.get(f"{A}kiosk-events/?created_after=2000-01-01T00:00:00Z").json()["count"] == 3
+        assert admin_client.get(f"{A}kiosk-events/?created_before=2000-01-01T00:00:00Z").json()["count"] == 0
+
+    def test_read_only(self, admin_client, events):
+        assert admin_client.post(f"{A}kiosk-events/", {"type": "STAFF_CALLED"}).status_code == 405
+
+    def test_kiosk_cannot_read_admin_list(self, kiosk_client, events):
+        assert kiosk_client.get(f"{A}kiosk-events/").status_code in (401, 403)

@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -82,6 +83,12 @@ if DATABASES["default"]["ENGINE"] == "django.db.backends.mysql":
         }
     )
     DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+elif DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    # runserver is threaded and select_for_update() is a no-op on SQLite: a deferred transaction that
+    # reads then writes fails at once with "database is locked" when another request writes (the kiosk
+    # posts RECEIPT_PRINTED and EAS_DEACTIVATED back to back). IMMEDIATE takes the write lock up front
+    # and the timeout makes concurrent writers wait instead.
+    DATABASES["default"].setdefault("OPTIONS", {}).update({"transaction_mode": "IMMEDIATE", "timeout": 20})
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -97,6 +104,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # --- REST framework -------------------------------------------------------
 REST_FRAMEWORK = {
@@ -140,10 +149,14 @@ SPECTACULAR_SETTINGS = {
         "WeightOutcomeEnum": "apps.orders.models.WeightVerification.Outcome",
         "WeightStatusEnum": "apps.orders.models.OrderItem.WeightStatus",
         "UserRoleEnum": "apps.accounts.models.User.Role",
+        "KioskEventTypeEnum": "apps.orders.models.KioskEvent.Type",
+        "DeviceStateEnum": "apps.stores.api.kiosk_serializers.DEVICE_STATES",
     },
 }
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
+# The kiosk (Flutter web build) sends Idempotency-Key on POST items/ and payments/.
+CORS_ALLOW_HEADERS = (*default_headers, "idempotency-key")
 
 # --- Celery ---------------------------------------------------------------
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")

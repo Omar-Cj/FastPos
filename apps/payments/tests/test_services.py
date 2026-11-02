@@ -4,7 +4,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from apps.core.exceptions import EmptyOrder, OrderNotOpen, OrderNotPaid, PaymentInProgress
+from apps.core.exceptions import Conflict, EmptyOrder, OrderNotOpen, OrderNotPaid, PaymentInProgress
 from apps.orders.models import Order
 from apps.payments import services
 from apps.payments.models import Payment
@@ -146,6 +146,38 @@ class TestCompleteAndTasks:
         reconcile_pending_payments()
         payment.refresh_from_db()
         assert (payment.status, payment.failure_reason) == (Payment.Status.FAILED, "RECONCILE_TIMEOUT")
+
+
+class TestAbandon:
+    def test_pending_mock_phone_stays_pending(self, order, django_capture_on_commit_callbacks):
+        payment, _ = initiate(django_capture_on_commit_callbacks, order, phone="252618888")
+        assert payment.status == Payment.Status.PENDING
+        assert payment.provider_response == {"outcome": "pending"}
+        assert order.status == Order.Status.AWAITING_PAYMENT
+
+    def test_pending_to_failed_reopens_order(self, order, django_capture_on_commit_callbacks):
+        payment, _ = initiate(django_capture_on_commit_callbacks, order, phone="252618888")
+        result = services.abandon_payment(payment)
+        assert result.status == Payment.Status.FAILED
+        assert result.failure_reason == services.ABANDON_REASON == "Abandoned by customer"
+        assert result.completed_at
+        assert result.order.status == Order.Status.OPEN
+        order.refresh_from_db()
+        assert order.status == Order.Status.OPEN
+
+    def test_failed_is_unchanged(self, order, django_capture_on_commit_callbacks):
+        payment, _ = initiate(django_capture_on_commit_callbacks, order, phone="252610000000")
+        result = services.abandon_payment(payment)
+        assert (result.status, result.failure_reason) == (Payment.Status.FAILED, "Customer declined")
+        assert result.completed_at == payment.completed_at
+
+    def test_success_conflict(self, order, django_capture_on_commit_callbacks):
+        payment, _ = initiate(django_capture_on_commit_callbacks, order)
+        with pytest.raises(Conflict) as exc:
+            services.abandon_payment(payment)
+        assert exc.value.code == "PAYMENT_NOT_PENDING" and exc.value.status_code == 409
+        payment.refresh_from_db()
+        assert payment.status == Payment.Status.SUCCESS
 
 
 class TestReceipt:
